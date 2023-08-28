@@ -1,20 +1,18 @@
 <template>
   <div
     class="flex justify-between items-center px-72 py-10 font-bgp bg-white md:px-28 ls:px-10"
+    ref="categoriesDiv"
   >
     <div class="flex items-center">
       <div class="pr-6 border-r-2 border-gray-light mr-6 tb:border-none">
         <IconCompany />
       </div>
-      <div
-        class="flex justify-between space-x-8 relative tb:hidden"
-        ref="categoriesDiv"
-      >
+      <div class="flex justify-between space-x-8 relative tb:hidden">
         <div
           v-for="(category, index) in visibleCategories"
           :key="index"
-          class="font-medium text-black-600 hover:text-purple-primary cursor-pointer text-base"
-          ref="categoryDiv"
+          class="font-medium text-black-600 hover:text-purple-primary cursor-pointer text-base whitespace-nowrap"
+          ref="categoryDivs"
         >
           {{ category }}
         </div>
@@ -22,7 +20,7 @@
           v-if="hiddenCategories.length > 0"
           ref="otherDiv"
           @mouseover="showHiddenCategories"
-          class="font-medium relative text-black-600 cursor-pointer text-base mr-4 flex space-x-2 items-center"
+          class="font-medium relative text-black-600 cursor-pointer text-base flex space-x-2 items-center"
         >
           <span class="hover:text-purple-primary">სხვა</span>
           <span><IconArrowDown /></span>
@@ -42,7 +40,7 @@
         </div>
       </div>
     </div>
-    <div class="flex">
+    <div class="flex ml-8">
       <div class="flex space-x-2 mr-4 mb:hidden">
         <div class="bg-primary-light py-2 px-2 my-2 rounded-full">
           <IconInstagram />
@@ -116,17 +114,35 @@ const showDropdown = ref(false);
 const showListDropdown = ref(false);
 const otherDiv = ref(null);
 const categoriesDiv = ref(null);
-const categoryDiv = ref(null);
+const categoryDivs = ref(null);
 const visibleCategoriesCount = ref(8);
 
-const windowResizeHandler = () => {
-  if (window.innerWidth < 1700 && window.innerWidth > 1450) {
-    visibleCategoriesCount.value = 3; // Adjust this value as needed
-  } else if (window.innerWidth < 1450) {
-    visibleCategoriesCount.value = 2;
-  } else {
-    visibleCategoriesCount.value = 4;
+const calculateVisibleCategories = (visibleCategoriesLength) => {
+  const computedStyles = getComputedStyle(categoriesDiv.value);
+  const paddingX = parseFloat(computedStyles.paddingLeft);
+
+  const remainingWidth =
+    categoriesDiv.value.offsetWidth -
+    otherDiv.value.offsetWidth -
+    paddingX * 2 -
+    460;
+  let sumChildrenWidth = 4 * otherDiv.value.offsetWidth;
+
+  for (let i = 0; i <= visibleCategoriesLength - 1; i++) {
+    sumChildrenWidth += categoryDivs.value[i].offsetWidth + 10;
   }
+
+  if (remainingWidth > sumChildrenWidth || visibleCategoriesLength === 0) {
+    if (remainingWidth - sumChildrenWidth > 150) {
+      visibleCategoriesCount.value = visibleCategoriesLength + 1;
+    } else {
+      visibleCategoriesCount.value = visibleCategoriesLength;
+    }
+    return;
+  }
+
+  visibleCategoriesCount.value -= 1;
+  calculateVisibleCategories(visibleCategoriesLength - 1);
 };
 
 const visibleCategories = computed(() => {
@@ -146,11 +162,16 @@ const hideHiddenCategories = () => {
 };
 
 onMounted(() => {
-  window.addEventListener("resize", windowResizeHandler);
-  windowResizeHandler();
+  window.addEventListener("resize", () =>
+    calculateVisibleCategories(visibleCategoriesCount.value),
+  );
+  calculateVisibleCategories(visibleCategoriesCount.value);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", windowResizeHandler);
+  window.removeEventListener(
+    "resize",
+    calculateVisibleCategories(visibleCategoriesCount.value),
+  );
 });
 </script>
